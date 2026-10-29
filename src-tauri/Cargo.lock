@@ -1670,7 +1670,7 @@ dependencies = [
 
 [[package]]
 name = "glossyshots"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "arboard",
  "serde",
@@ -1680,6 +1680,7 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-single-instance",
+ "windows-sys 0.61.2",
  "winreg",
  "xcap",
 ]

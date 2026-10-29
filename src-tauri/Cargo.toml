@@ -1,6 +1,6 @@
 [package]
 name = "glossyshots"
-version = "0.2.1"
+version = "0.2.2"
 description = "Glossyshots : capture d'écran, floutage, annotations et fonds élégants"
 authors = ["abg5f"]
 license = "MIT"
@@ -25,3 +25,4 @@ arboard = "3.6.1"
 
 [target."cfg(windows)".dependencies]
 winreg = "0.56.0"
+windows-sys = { version = "0.61", features = ["Win32_UI_Input_KeyboardAndMouse"] }

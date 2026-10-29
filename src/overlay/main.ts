@@ -298,7 +298,12 @@ async function onCapture(): Promise<void> {
   void document.body.offsetWidth;
   document.body.classList.add("is-entering");
   // Deux frames : l'image est peinte avant que la fenêtre n'apparaisse (aucun flash).
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // Une fenêtre encore masquée peut ne recevoir aucune frame : au-delà de 120 ms,
+  // on s'affiche quand même plutôt que de rester invisible indéfiniment.
+  await Promise.race([
+    new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+    new Promise((r) => setTimeout(r, 120)),
+  ]);
   ready = true;
   await invoke("overlay_ready");
 }

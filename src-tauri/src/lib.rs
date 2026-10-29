@@ -131,6 +131,8 @@ pub struct AppState {
     pub capture: Mutex<Option<Shot>>,
     pub crop: Mutex<Option<Shot>>,
     pub busy: AtomicBool,
+    /// Début de la capture en cours : sert à détecter une capture restée bloquée.
+    pub busy_since: Mutex<Option<std::time::Instant>>,
     pub printscreen_registered: AtomicBool,
 }
 
@@ -145,8 +147,30 @@ struct CaptureMeta {
 pub fn start_capture(app: &AppHandle) {
     let state = app.state::<AppState>();
     if state.busy.swap(true, Ordering::SeqCst) {
-        return;
+        let overlay = app.get_webview_window("overlay");
+        if overlay.as_ref().and_then(|o| o.is_visible().ok()).unwrap_or(false) {
+            // Sélection déjà à l'écran : on la remet au premier plan.
+            if let Some(o) = overlay {
+                let _ = o.set_focus();
+            }
+            return;
+        }
+        // Capture lancée mais jamais affichée depuis plus de 3 s : elle est bloquée.
+        // On la libère et on repart, au lieu d'ignorer la touche jusqu'au redémarrage.
+        let stale = state
+            .busy_since
+            .lock()
+            .unwrap()
+            .is_some_and(|t| t.elapsed() > std::time::Duration::from_secs(3));
+        if !stale {
+            return;
+        }
+        eprintln!("[glossyshots] capture précédente bloquée : réinitialisation");
+        if let Some(o) = overlay {
+            let _ = o.hide();
+        }
     }
+    *state.busy_since.lock().unwrap() = Some(std::time::Instant::now());
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         if let Err(err) = capture_under_cursor(&app) {
@@ -403,6 +427,7 @@ pub fn run() {
 
             let first_run = settings::load(app.handle());
             shortcut::register_all(app.handle());
+            shortcut::start_watchdog(app.handle());
             tray::build(app.handle())?;
 
             // Au premier lancement (et hors démarrage automatique), on présente l'éditeur
